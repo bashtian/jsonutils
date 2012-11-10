@@ -43,15 +43,15 @@ func PrintJava(f interface{}) {
 	print(f, fu, "//NOTE: use as an array\nclass %s {\n", "class %s {\n")
 }
 
-func print(f interface{}, fu func(map[string]interface{}), a string, o string) {
+func print(f interface{}, fu func(map[string]interface{}), array string, object string) {
 	var m map[string]interface{}
 	switch v := f.(type) {
 	case []interface{}:
 		m = v[0].(map[string]interface{})
-		fmt.Printf(a, "Data")
+		fmt.Printf(array, "Data")
 	default:
 		m = f.(map[string]interface{})
-		fmt.Printf(o, "Data")
+		fmt.Printf(object, "Data")
 	}
 	fu(m)
 	fmt.Println("}")
@@ -146,6 +146,7 @@ func printValuesJava(t, name string) {
 
 func replaceName(n string) string {
 	n = strings.Replace(n, "_", "-", -1)
+	n = strings.Replace(n, "@", "", -1)
 	n = strings.Title(n)
 	n = strings.Replace(n, "-", "", -1)
 	n = strings.Replace(n, ".", "", -1)
