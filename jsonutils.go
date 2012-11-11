@@ -155,10 +155,10 @@ func printValuesJava(t, name string) {
 }
 
 func replaceName(n string) string {
-	n = strings.Replace(n, "_", "-", -1)
-	n = strings.Replace(n, "@", "", -1)
+	for _, c := range "@_-+.,!" {
+		n = strings.Replace(n, string(c), " ", -1)
+	}
 	n = strings.Title(n)
-	n = strings.Replace(n, "-", "", -1)
-	n = strings.Replace(n, ".", "", -1)
+	n = strings.Replace(n, " ", "", -1)
 	return n
 }
