@@ -71,7 +71,17 @@ func parseMap(m map[string]interface{}) {
 				printType(k, "float64")
 			}
 		case []interface{}:
-			printObject(k, "[]struct", func() { parseMap(vv[0].(map[string]interface{})) })
+			if len(vv) > 0 {
+				switch vvv := vv[0].(type) {
+				case string:
+					printType(k, "[]string")
+				default:
+					printObject(k, "[]struct", func() { parseMap(vvv.(map[string]interface{})) })
+				}
+			} else {
+				// empty array
+				printType(k, "[]interface{}")
+			}
 		case map[string]interface{}:
 			printObject(k, "struct", func() { parseMap(vv) })
 		default:
