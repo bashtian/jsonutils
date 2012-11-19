@@ -75,6 +75,8 @@ func parseMap(m map[string]interface{}) {
 				switch vvv := vv[0].(type) {
 				case string:
 					printType(k, "[]string")
+				case []interface{}:
+					printObject(k, "[]struct", func() { parseMap(vvv[0].(map[string]interface{})) })
 				default:
 					printObject(k, "[]struct", func() { parseMap(vvv.(map[string]interface{})) })
 				}
