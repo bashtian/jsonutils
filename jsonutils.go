@@ -3,10 +3,14 @@ package jsonutils
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
 )
+
+var Writer io.Writer = os.Stdout
 
 func Get(url string) ([]byte, error) {
 	r, err := http.Get(url)
@@ -39,7 +43,7 @@ func PrintJava(f interface{}) {
 			parseArrayJava(v, n)
 		}
 	}
-	fmt.Println("import com.google.gson.annotations.SerializedName;\n")
+	fmt.Fprintln(Writer, "import com.google.gson.annotations.SerializedName;\n")
 	print(f, fu, "//NOTE: use as an array\nclass %s {\n", "class %s {\n")
 }
 
@@ -48,13 +52,13 @@ func print(f interface{}, fu func(map[string]interface{}), array string, object 
 	switch v := f.(type) {
 	case []interface{}:
 		m = v[0].(map[string]interface{})
-		fmt.Printf(array, "Data")
+		fmt.Fprintf(Writer, array, "Data")
 	default:
 		m = f.(map[string]interface{})
-		fmt.Printf(object, "Data")
+		fmt.Fprintf(Writer, object, "Data")
 	}
 	fu(m)
-	fmt.Println("}")
+	fmt.Fprintln(Writer, "}")
 }
 
 func parseMap(m map[string]interface{}) {
@@ -96,7 +100,7 @@ func parseMapJava(m map[string]interface{}) ([]map[string]interface{}, []string)
 	var data []map[string]interface{}
 	var names []string
 	for k, v := range m {
-		fmt.Println(`@SerializedName("` + k + `")`)
+		fmt.Fprintln(Writer, `@SerializedName("`+k+`")`)
 		name := replaceName(k)
 		switch vv := v.(type) {
 		case string:
@@ -126,21 +130,21 @@ func parseMapJava(m map[string]interface{}) ([]map[string]interface{}, []string)
 
 func printType(n string, t string) {
 	name := replaceName(n)
-	fmt.Printf("%s %s `json:\"%s\"`\n", name, t, n)
+	fmt.Fprintf(Writer, "%s %s `json:\"%s\"`\n", name, t, n)
 }
 
 func printObject(n string, t string, f func()) {
 	name := replaceName(n)
-	fmt.Printf("%s %s {\n", name, t)
+	fmt.Fprintf(Writer, "%s %s {\n", name, t)
 	f()
-	fmt.Printf("} `json:\"%s\"`\n", n)
+	fmt.Fprintf(Writer, "} `json:\"%s\"`\n", n)
 }
 
 func parseArrayJava(m []map[string]interface{}, s []string) {
 	for i, v := range m {
-		fmt.Println("class", s[i], "{")
+		fmt.Fprintln(Writer, "class", s[i], "{")
 		v, n := parseMapJava(v)
-		fmt.Println("}")
+		fmt.Fprintln(Writer, "}")
 		if v != nil {
 			parseArrayJava(v, n)
 		}
@@ -149,11 +153,11 @@ func parseArrayJava(m []map[string]interface{}, s []string) {
 
 func printValuesJava(t, name string) {
 	n := strings.ToLower(name)
-	fmt.Println("private", t, n+";")
-	fmt.Println("public " + t + " get" + name + "() {")
-	fmt.Println("return " + n + ";\n}")
-	fmt.Println("public void set" + name + "(" + t + " " + n + ") {")
-	fmt.Println("this." + n + " = " + n + ";\n}")
+	fmt.Fprintln(Writer, "private", t, n+";")
+	fmt.Fprintln(Writer, "public "+t+" get"+name+"() {")
+	fmt.Fprintln(Writer, "return "+n+";\n}")
+	fmt.Fprintln(Writer, "public void set"+name+"("+t+" "+n+") {")
+	fmt.Fprintln(Writer, "this."+n+" = "+n+";\n}")
 }
 
 func replaceName(n string) string {
