@@ -81,8 +81,10 @@ func parseMap(m map[string]interface{}) {
 					printType(k, "[]string")
 				case []interface{}:
 					printObject(k, "[]struct", func() { parseMap(vvv[0].(map[string]interface{})) })
+				case map[string]interface{}:
+					printObject(k, "[]struct", func() { parseMap(vvv) })
 				default:
-					printObject(k, "[]struct", func() { parseMap(vvv.(map[string]interface{})) })
+					printType(k, "interface{}")
 				}
 			} else {
 				// empty array
