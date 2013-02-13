@@ -1,13 +1,16 @@
 package jsonutils
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"go/format"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
+	"text/template"
 )
 
 var Writer io.Writer = os.Stdout
@@ -102,29 +105,28 @@ func parseMapJava(m map[string]interface{}) ([]map[string]interface{}, []string)
 	var data []map[string]interface{}
 	var names []string
 	for k, v := range m {
-		fmt.Fprintln(Writer, `@SerializedName("`+k+`")`)
 		name := replaceName(k)
 		switch vv := v.(type) {
 		case string:
-			printValuesJava("String", name)
+			printValuesJava("String", k)
 		case float64:
 			if float64(int(vv)) == vv {
-				printValuesJava("int", name)
+				printValuesJava("int", k)
 			} else {
-				printValuesJava("double", name)
+				printValuesJava("double", k)
 			}
 		case bool:
-			printValuesJava("boolean", name)
+			printValuesJava("boolean", k)
 		case []interface{}:
-			printValuesJava(name+"[]", name)
+			printValuesJava(name+"[]", k)
 			data = append(data, vv[0].(map[string]interface{}))
-			names = append(names, name)
+			names = append(names, k)
 		case map[string]interface{}:
-			printValuesJava(name, name)
+			printValuesJava(name, k)
 			data = append(data, vv)
-			names = append(names, name)
+			names = append(names, k)
 		default:
-			printValuesJava("Object", name)
+			printValuesJava("Object", k)
 		}
 	}
 	return data, names
@@ -153,13 +155,33 @@ func parseArrayJava(m []map[string]interface{}, s []string) {
 	}
 }
 
-func printValuesJava(t, name string) {
-	n := strings.ToLower(name)
-	fmt.Fprintln(Writer, "private", t, n+";")
-	fmt.Fprintln(Writer, "public "+t+" get"+name+"() {")
-	fmt.Fprintln(Writer, "return "+n+";\n}")
-	fmt.Fprintln(Writer, "public void set"+name+"("+t+" "+n+") {")
-	fmt.Fprintln(Writer, "this."+n+" = "+n+";\n}")
+func printValuesJava(javaType, key string) {
+	const tmpl = `
+@SerializedName("{{.Key}}")
+private {{.Type}} {{.LowerName}};
+
+public {{.Type}} get{{.Name}}() {
+	return {{.LowerName}};
+}
+
+public void set{{.Name}}({{.Type}} {{.LowerName}}) {
+	this.{{.LowerName}} = {{.LowerName}};
+}
+`
+	tmpName := replaceName(key)
+	data := struct {
+		Type      string
+		Key       string
+		Name      string
+		LowerName string
+	}{
+		javaType,
+		key,
+		tmpName,
+		strings.ToLower(tmpName),
+	}
+	t := template.Must(template.New("type").Parse(tmpl))
+	t.Execute(os.Stdout, data)
 }
 
 func replaceName(n string) string {
@@ -169,4 +191,26 @@ func replaceName(n string) string {
 	n = strings.Title(n)
 	n = strings.Replace(n, " ", "", -1)
 	return n
+}
+
+func Mock(b []byte, i interface{}) ([]byte, error) {
+	err := json.Unmarshal(b, &i)
+	if err != nil {
+		return nil, err
+	}
+
+	var buf bytes.Buffer
+	fmt.Fprintf(&buf, "package main\nvar test = %#v", i)
+
+	form, err := format.Source(buf.Bytes())
+	if err != nil {
+		return nil, err
+	}
+
+	//err = ioutil.WriteFile("test_mock.go", buf.Bytes(), 0644)
+	//if err != nil {
+	//	return nil, err
+	//}
+
+	return form, nil
 }

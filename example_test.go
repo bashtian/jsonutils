@@ -1,8 +1,12 @@
-jsonutils
-=========
+package jsonutils_test
 
-Converter for JSON data to a Go struct or a Java class for GSON
+import (
+	"github.com/bashtian/jsonutils"
+	"log"
+	"os"
+)
 
+func Example() {
 	b := []byte(`{"Name":"Wednesday","Age":6,"Parents":["Gomez","Morticia"]}`)
 
 	f, err := jsonutils.ParseJson(b)
@@ -10,3 +14,4 @@ Converter for JSON data to a Go struct or a Java class for GSON
 		log.Fatal(err)
 	}
 	jsonutils.PrintGo(f)
+}
