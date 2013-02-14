@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 	"text/template"
 )
@@ -65,8 +66,9 @@ func print(f interface{}, fu func(map[string]interface{}), array string, object 
 }
 
 func parseMap(m map[string]interface{}) {
-	for k, v := range m {
-		switch vv := v.(type) {
+	keys := getSortedKeys(m)
+	for _, k := range keys {
+		switch vv := m[k].(type) {
 		case string:
 			printType(k, "string")
 		case bool:
@@ -82,11 +84,14 @@ func parseMap(m map[string]interface{}) {
 				switch vvv := vv[0].(type) {
 				case string:
 					printType(k, "[]string")
+				case float64:
+					printType(k, "[]float64")
 				case []interface{}:
 					printObject(k, "[]struct", func() { parseMap(vvv[0].(map[string]interface{})) })
 				case map[string]interface{}:
 					printObject(k, "[]struct", func() { parseMap(vvv) })
 				default:
+					//fmt.Printf("unknown type: %T", vvv)
 					printType(k, "interface{}")
 				}
 			} else {
@@ -185,7 +190,7 @@ public void set{{.Name}}({{.Type}} {{.LowerName}}) {
 }
 
 func replaceName(n string) string {
-	for _, c := range "@_-+.,!" {
+	for _, c := range "@_-+.,!$:/\\" {
 		n = strings.Replace(n, string(c), " ", -1)
 	}
 	n = strings.Title(n)
@@ -213,4 +218,12 @@ func Mock(b []byte, i interface{}) ([]byte, error) {
 	//}
 
 	return form, nil
+}
+
+func getSortedKeys(m map[string]interface{}) (keys []string) {
+	for key := range m {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return
 }
