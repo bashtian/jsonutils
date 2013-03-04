@@ -123,9 +123,29 @@ func parseMapJava(m map[string]interface{}) ([]map[string]interface{}, []string)
 		case bool:
 			printValuesJava("boolean", k)
 		case []interface{}:
-			printValuesJava(name+"[]", k)
-			data = append(data, vv[0].(map[string]interface{}))
-			names = append(names, k)
+			if len(vv) > 0 {
+				switch vvv := vv[0].(type) {
+				case string:
+					printValuesJava("String[]", k)
+				case float64:
+					printType(k, "float[]")
+				case []interface{}:
+					printValuesJava(name+"[]", k)
+					data = append(data, vvv[0].(map[string]interface{}))
+					names = append(names, k)
+				case map[string]interface{}:
+					printValuesJava(name+"[]", k)
+					data = append(data, vvv)
+					names = append(names, k)
+				default:
+					//fmt.Printf("unknown type: %T", vvv)
+					printType(k, "Object")
+				}
+			} else {
+				// empty array
+				printType(k, "Object[]")
+			}
+
 		case map[string]interface{}:
 			printValuesJava(name, k)
 			data = append(data, vv)
@@ -186,7 +206,7 @@ public void set{{.Name}}({{.Type}} {{.LowerName}}) {
 		strings.ToLower(tmpName),
 	}
 	t := template.Must(template.New("type").Parse(tmpl))
-	t.Execute(os.Stdout, data)
+	t.Execute(Writer, data)
 }
 
 func replaceName(n string) string {
