@@ -8,25 +8,27 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"sort"
 	"strings"
 	"text/template"
+	"time"
 )
 
 var Writer io.Writer = os.Stdout
 
-func Get(url string) ([]byte, error) {
+func Get(url string) ([]byte, string, error) {
 	r, err := http.Get(url)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	defer r.Body.Close()
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	return b, err
+	return b, getName(url), err
 }
 
 func ParseJson(b []byte) (interface{}, error) {
@@ -35,9 +37,9 @@ func ParseJson(b []byte) (interface{}, error) {
 	return f, err
 }
 
-func PrintGo(f interface{}) {
+func PrintGo(f interface{}, name string) {
 	fu := func(m map[string]interface{}) { parseMap(m) }
-	print(f, fu, "type %s []struct {\n", "type %s struct {\n")
+	print(f, fu, "type %s []struct {\n", "type %s struct {\n", name)
 }
 
 func PrintJava(f interface{}) {
@@ -48,18 +50,18 @@ func PrintJava(f interface{}) {
 		}
 	}
 	fmt.Fprintln(Writer, "import com.google.gson.annotations.SerializedName;\n")
-	print(f, fu, "//NOTE: use as an array\nclass %s {\n", "class %s {\n")
+	print(f, fu, "//NOTE: use as an array\nclass %s {\n", "class %s {\n", "Data")
 }
 
-func print(f interface{}, fu func(map[string]interface{}), array string, object string) {
+func print(f interface{}, fu func(map[string]interface{}), array, object, name string) {
 	var m map[string]interface{}
 	switch v := f.(type) {
 	case []interface{}:
 		m = v[0].(map[string]interface{})
-		fmt.Fprintf(Writer, array, "Data")
+		fmt.Fprintf(Writer, array, name)
 	default:
 		m = f.(map[string]interface{})
-		fmt.Fprintf(Writer, object, "Data")
+		fmt.Fprintf(Writer, object, name)
 	}
 	fu(m)
 	fmt.Fprintln(Writer, "}")
@@ -70,7 +72,12 @@ func parseMap(m map[string]interface{}) {
 	for _, k := range keys {
 		switch vv := m[k].(type) {
 		case string:
-			printType(k, "string")
+			if _, err := time.Parse(time.RFC3339, vv); err == nil {
+				printType(k, "time.Time")
+			} else {
+				printType(k, "string")
+			}
+
 		case bool:
 			printType(k, "bool")
 		case float64:
@@ -246,4 +253,16 @@ func getSortedKeys(m map[string]interface{}) (keys []string) {
 	}
 	sort.Strings(keys)
 	return
+}
+
+func getName(u string) string {
+	p, err := url.Parse(u)
+	if err != nil {
+		return "Data"
+	}
+	s := strings.Split(p.Path, "/")
+	if len(s) < 1 {
+		return "Data"
+	}
+	return strings.Title(s[len(s)-1])
 }
