@@ -25,6 +25,9 @@ type Model struct {
 }
 
 func New(data interface{}, name string) *Model {
+	if name == "" {
+		name = "Data"
+	}
 	return &Model{
 		Writer:      os.Stdout,
 		WithExample: true,
