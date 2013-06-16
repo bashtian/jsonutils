@@ -3,7 +3,7 @@ jsonutils
 
 Converter for JSON data to a Go struct or a Java class for GSON
 
-	go get github.com/bashtian/jsonutils
+	go get github.com/bashtian/jsonutils/jsonutils
 
 You can print the structure of a JSON from a URL
 
