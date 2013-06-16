@@ -16,7 +16,35 @@ import (
 	"time"
 )
 
-var Writer io.Writer = os.Stdout
+type Model struct {
+	Writer      io.Writer
+	WithExample bool
+	Data        interface{}
+	Name        string
+	Format      bool
+}
+
+func New(data interface{}, name string) *Model {
+	return &Model{
+		Writer:      os.Stdout,
+		WithExample: true,
+		Data:        data,
+		Name:        name,
+		Format:      true,
+	}
+}
+
+func GetModel(url string) (*Model, error) {
+	b, name, err := Get(url)
+	if err != nil {
+		return nil, err
+	}
+	f, err := ParseJson(b)
+	if err != nil {
+		return nil, err
+	}
+	return New(f, name), nil
+}
 
 func Get(url string) ([]byte, string, error) {
 	r, err := http.Get(url)
@@ -38,156 +66,201 @@ func ParseJson(b []byte) (interface{}, error) {
 }
 
 func PrintGo(f interface{}, name string) {
-	fu := func(m map[string]interface{}) { parseMap(m) }
-	print(f, fu, "type %s []struct {\n", "type %s struct {\n", name)
+	WriteGo(os.Stdout, f, name)
 }
 
-func PrintJava(f interface{}) {
-	fu := func(m map[string]interface{}) {
-		v, n := parseMapJava(m)
+func WriteGo(w io.Writer, f interface{}, name string) {
+	m := &Model{
+		Writer:      w,
+		WithExample: true,
+		Data:        f,
+		Name:        name,
+	}
+	m.WriteGo()
+}
+
+func (m *Model) WriteGo() {
+	if m.Format {
+		org := m.Writer
+
+		var buf bytes.Buffer
+		m.Writer = &buf
+
+		m.writeGo()
+
+		b, err := format.Source(buf.Bytes())
+		if err == nil {
+			org.Write(b)
+		} else {
+			io.Copy(org, &buf)
+		}
+		m.Writer = org
+	} else {
+		m.writeGo()
+	}
+
+}
+
+func (m *Model) writeGo() {
+	fu := func(ms map[string]interface{}) { m.parseMap(ms) }
+	m.print(fu, "type %s []struct {\n", "type %s struct {\n")
+}
+
+func (m *Model) WriteJava() {
+	fu := func(ms map[string]interface{}) {
+		v, n := m.parseMapJava(ms)
 		if v != nil {
-			parseArrayJava(v, n)
+			m.parseArrayJava(v, n)
 		}
 	}
-	fmt.Fprintln(Writer, "import com.google.gson.annotations.SerializedName;\n")
-	print(f, fu, "//NOTE: use as an array\nclass %s {\n", "class %s {\n", "Data")
+	fmt.Fprintln(m.Writer, "import com.google.gson.annotations.SerializedName;\n")
+	m.print(fu, "//NOTE: use as an array\nclass %s {\n", "class %s {\n")
 }
 
-func print(f interface{}, fu func(map[string]interface{}), array, object, name string) {
-	var m map[string]interface{}
-	switch v := f.(type) {
+func (m *Model) print(fu func(map[string]interface{}), array, object string) {
+	var ma map[string]interface{}
+	switch v := m.Data.(type) {
 	case []interface{}:
-		m = v[0].(map[string]interface{})
-		fmt.Fprintf(Writer, array, name)
+		ma = v[0].(map[string]interface{})
+		fmt.Fprintf(m.Writer, array, m.Name)
 	default:
-		m = f.(map[string]interface{})
-		fmt.Fprintf(Writer, object, name)
+		ma = m.Data.(map[string]interface{})
+		fmt.Fprintf(m.Writer, object, m.Name)
 	}
-	fu(m)
-	fmt.Fprintln(Writer, "}")
+	fu(ma)
+	fmt.Fprintln(m.Writer, "}")
 }
 
-func parseMap(m map[string]interface{}) {
-	keys := getSortedKeys(m)
+func (m *Model) parseMap(ms map[string]interface{}) {
+	keys := getSortedKeys(ms)
 	for _, k := range keys {
-		switch vv := m[k].(type) {
+		switch vv := ms[k].(type) {
 		case string:
 			if _, err := time.Parse(time.RFC3339, vv); err == nil {
-				printType(k, "time.Time")
+				m.printType(k, vv, "time.Time")
 			} else {
-				printType(k, "string")
+				m.printType(k, vv, "string")
 			}
 
 		case bool:
-			printType(k, "bool")
+			m.printType(k, vv, "bool")
 		case float64:
+			//json parser always returns a float for number values, check if it is an int value
 			if float64(int64(vv)) == vv {
-				printType(k, "int64")
+				m.printType(k, vv, "int64")
 			} else {
-				printType(k, "float64")
+				m.printType(k, vv, "float64")
 			}
+		case int64:
+			m.printType(k, vv, "int64")
 		case []interface{}:
 			if len(vv) > 0 {
 				switch vvv := vv[0].(type) {
 				case string:
-					printType(k, "[]string")
+					m.printType(k, vv[0], "[]string")
 				case float64:
-					printType(k, "[]float64")
+					m.printType(k, vv[0], "[]float64")
 				case []interface{}:
-					printObject(k, "[]struct", func() { parseMap(vvv[0].(map[string]interface{})) })
+					m.printObject(k, "[]struct", func() { m.parseMap(vvv[0].(map[string]interface{})) })
 				case map[string]interface{}:
-					printObject(k, "[]struct", func() { parseMap(vvv) })
+					m.printObject(k, "[]struct", func() { m.parseMap(vvv) })
 				default:
 					//fmt.Printf("unknown type: %T", vvv)
-					printType(k, "interface{}")
+					m.printType(k, nil, "interface{}")
 				}
 			} else {
 				// empty array
-				printType(k, "[]interface{}")
+				m.printType(k, nil, "[]interface{}")
 			}
 		case map[string]interface{}:
-			printObject(k, "struct", func() { parseMap(vv) })
+			m.printObject(k, "struct", func() { m.parseMap(vv) })
 		default:
-			printType(k, "interface{}")
+			//fmt.Printf("unknown type: %T", vv)
+			m.printType(k, nil, "interface{}")
 		}
 	}
 }
 
-func parseMapJava(m map[string]interface{}) ([]map[string]interface{}, []string) {
+func (m *Model) parseMapJava(ms map[string]interface{}) ([]map[string]interface{}, []string) {
 	var data []map[string]interface{}
 	var names []string
-	for k, v := range m {
+	for k, v := range ms {
 		name := replaceName(k)
 		switch vv := v.(type) {
 		case string:
-			printValuesJava("String", k)
+			m.printValuesJava("String", k)
 		case float64:
 			if float64(int(vv)) == vv {
-				printValuesJava("int", k)
+				m.printValuesJava("int", k)
 			} else {
-				printValuesJava("double", k)
+				m.printValuesJava("double", k)
 			}
 		case bool:
-			printValuesJava("boolean", k)
+			m.printValuesJava("boolean", k)
 		case []interface{}:
 			if len(vv) > 0 {
 				switch vvv := vv[0].(type) {
 				case string:
-					printValuesJava("String[]", k)
+					m.printValuesJava("String[]", k)
 				case float64:
-					printType(k, "float[]")
+					m.printValuesJava("float[]", k)
 				case []interface{}:
-					printValuesJava(name+"[]", k)
+					m.printValuesJava(name+"[]", k)
 					data = append(data, vvv[0].(map[string]interface{}))
 					names = append(names, k)
 				case map[string]interface{}:
-					printValuesJava(name+"[]", k)
+					m.printValuesJava(name+"[]", k)
 					data = append(data, vvv)
 					names = append(names, k)
 				default:
 					//fmt.Printf("unknown type: %T", vvv)
-					printType(k, "Object")
+					m.printValuesJava("Object", k)
 				}
 			} else {
 				// empty array
-				printType(k, "Object[]")
+				m.printValuesJava("Object[]", k)
 			}
 
 		case map[string]interface{}:
-			printValuesJava(name, k)
+			m.printValuesJava(name, k)
 			data = append(data, vv)
 			names = append(names, k)
 		default:
-			printValuesJava("Object", k)
+			m.printValuesJava("Object", k)
 		}
 	}
 	return data, names
 }
 
-func printType(n string, t string) {
-	name := replaceName(n)
-	fmt.Fprintf(Writer, "%s %s `json:\"%s\"`\n", name, t, n)
+func (m *Model) printType(key string, value interface{}, t string) {
+	name := replaceName(key)
+	if m.WithExample {
+		fmt.Fprintf(m.Writer, "%s %s `json:\"%s\"` // %v\n", name, t, key, value)
+	} else {
+		fmt.Fprintf(m.Writer, "%s %s `json:\"%s\"`\n", name, t, key)
+	}
+
 }
 
-func printObject(n string, t string, f func()) {
+func (m *Model) printObject(n string, t string, f func()) {
 	name := replaceName(n)
-	fmt.Fprintf(Writer, "%s %s {\n", name, t)
+	fmt.Fprintf(m.Writer, "%s %s {\n", name, t)
 	f()
-	fmt.Fprintf(Writer, "} `json:\"%s\"`\n", n)
+	fmt.Fprintf(m.Writer, "} `json:\"%s\"`\n", n)
 }
 
-func parseArrayJava(m []map[string]interface{}, s []string) {
-	for i, v := range m {
-		fmt.Fprintln(Writer, "class", s[i], "{")
-		v, n := parseMapJava(v)
-		fmt.Fprintln(Writer, "}")
+func (m *Model) parseArrayJava(ms []map[string]interface{}, s []string) {
+	for i, v := range ms {
+		fmt.Fprintln(m.Writer, "class", s[i], "{")
+		v, n := m.parseMapJava(v)
+		fmt.Fprintln(m.Writer, "}")
 		if v != nil {
-			parseArrayJava(v, n)
+			m.parseArrayJava(v, n)
 		}
 	}
 }
 
-func printValuesJava(javaType, key string) {
+func (m *Model) printValuesJava(javaType, key string) {
 	const tmpl = `
 @SerializedName("{{.Key}}")
 private {{.Type}} {{.LowerName}};
@@ -213,7 +286,7 @@ public void set{{.Name}}({{.Type}} {{.LowerName}}) {
 		strings.ToLower(tmpName),
 	}
 	t := template.Must(template.New("type").Parse(tmpl))
-	t.Execute(Writer, data)
+	t.Execute(m.Writer, data)
 }
 
 func replaceName(n string) string {

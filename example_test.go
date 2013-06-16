@@ -3,7 +3,6 @@ package jsonutils_test
 import (
 	"github.com/bashtian/jsonutils"
 	"log"
-	"os"
 )
 
 func Example() {
@@ -13,23 +12,21 @@ func Example() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	jsonutils.Writer = os.Stdout
-	jsonutils.PrintGo(f)
+	jsonutils.PrintGo(f, "Example")
 	// Output:
-	// type Data struct {
-	// Boolean bool `json:"boolean"`
-	// Float float64 `json:"float"`
-	// FloatArray []float64 `json:"floatArray"`
-	// IntArray []float64 `json:"intArray"`
-	// Null interface{} `json:"null"`
-	// Number int64 `json:"number"`
+	// type Example struct {
+	// Boolean bool `json:"boolean"` // true
+	// Float float64 `json:"float"` // 123.12
+	// FloatArray []float64 `json:"floatArray"` // 1.12
+	// IntArray []float64 `json:"intArray"` // 1
+	// Null interface{} `json:"null"` // <nil>
+	// Number int64 `json:"number"` // 123
 	// Object struct {
-	// A string `json:"a"`
-	// C string `json:"c"`
-	// E string `json:"e"`
+	// A string `json:"a"` // b
+	// C string `json:"c"` // d
+	// E string `json:"e"` // f
 	// } `json:"object"`
-	// String string `json:"string"`
-	// StringArray []string `json:"stringArray"`
+	// String string `json:"string"` // HelloWorld
+	// StringArray []string `json:"stringArray"` // a
 	// }
-
 }
