@@ -3,27 +3,38 @@ jsonutils
 
 Converter for JSON data to a Go struct or a Java class for GSON
 
+    ```bash
 	go get github.com/bashtian/jsonutils/jsonutils
+    ```
 
 You can print the structure of a JSON from a URL
 
+    ```bash
 	jsonutils https://api.github.com/users/bashtian/repos
+    ```
 
 or from a file
 
+    ```bash
 	jsonutils -f file.json
+    ```
 
 or from stdin
 
+    ```bash
     echo '{"some": "data"}' | jsonutils
+    ```
 
-If you want to print example data as comments, use the -x parmeter
+If you want to print example data as comments, use the -x parameter
 
+    ```bash
 	jsonutils -x https://api.github.com/users/bashtian/repos
 
 You can also print Java code 
 
+    ```bash
 	jsonutils -j https://api.github.com/users/bashtian/repos
+    ```
 
 ###Example
 ####JSON
