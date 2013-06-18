@@ -5,6 +5,7 @@ import (
 	"github.com/bashtian/jsonutils"
 	"io/ioutil"
 	"log"
+	"os"
 	"strings"
 )
 
@@ -37,7 +38,15 @@ func main() {
 			log.Fatal(err.Error())
 		}
 	} else {
-		log.Fatal("missing URL")
+		b, err := ioutil.ReadAll(os.Stdin)
+		if err != nil {
+			log.Fatal(err)
+		}
+		f, err := jsonutils.ParseJson(b)
+		if err != nil {
+			log.Fatal(err)
+		}
+		m = jsonutils.New(f, "")
 	}
 
 	m.WithExample = *withExamples

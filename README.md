@@ -13,6 +13,10 @@ or from a file
 
 	jsonutils -f file.json
 
+or from stdin
+
+    echo '{"some": "data"}' | jsonutils
+
 If you want to print example data as comments, use the -x parmeter
 
 	jsonutils -x https://api.github.com/users/bashtian/repos
