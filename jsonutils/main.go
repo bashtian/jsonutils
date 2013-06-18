@@ -24,13 +24,11 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		f, err := jsonutils.ParseJson(b)
+		s := strings.Split(*filename, ".")
+		m, err = jsonutils.FromBytes(b, s[0])
 		if err != nil {
 			log.Fatal(err)
 		}
-		s := strings.Split(*filename, ".")
-
-		m = jsonutils.New(f, s[0])
 	} else if url != "" {
 		var err error
 		m, err = jsonutils.GetModel(url)
@@ -42,11 +40,10 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		f, err := jsonutils.ParseJson(b)
+		m, err = jsonutils.FromBytes(b, "")
 		if err != nil {
 			log.Fatal(err)
 		}
-		m = jsonutils.New(f, "")
 	}
 
 	m.WithExample = *withExamples

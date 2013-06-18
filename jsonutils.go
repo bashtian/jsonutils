@@ -37,16 +37,20 @@ func New(data interface{}, name string) *Model {
 	}
 }
 
+func FromBytes(bytes []byte, name string) (*Model, error) {
+	f, err := ParseJson(bytes)
+	if err != nil {
+		return nil, err
+	}
+	return New(f, name), nil
+}
+
 func GetModel(url string) (*Model, error) {
 	b, name, err := Get(url)
 	if err != nil {
 		return nil, err
 	}
-	f, err := ParseJson(b)
-	if err != nil {
-		return nil, err
-	}
-	return New(f, name), nil
+	return FromBytes(b, name)
 }
 
 func Get(url string) ([]byte, string, error) {
