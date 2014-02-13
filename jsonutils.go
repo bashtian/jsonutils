@@ -54,7 +54,12 @@ func GetModel(url string) (*Model, error) {
 }
 
 func Get(url string) ([]byte, string, error) {
-	r, err := http.Get(url)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, "", err
+	}
+	req.Header.Add("Accept", "application/json")
+	r, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, "", err
 	}
@@ -121,7 +126,7 @@ func (m *Model) WriteJava() {
 		}
 	}
 	fmt.Fprintln(m.Writer, "import com.google.gson.annotations.SerializedName;\n")
-	m.print(fu, "//NOTE: use as an array\nclass %s {\n", "class %s {\n")
+	m.print(fu, "//NOTE: use as an array\npublic class %s {\n", "class %s {\n")
 }
 
 func (m *Model) print(fu func(map[string]interface{}), array, object string) {
@@ -258,7 +263,7 @@ func (m *Model) printObject(n string, t string, f func()) {
 
 func (m *Model) parseArrayJava(ms []map[string]interface{}, s []string) {
 	for i, v := range ms {
-		fmt.Fprintln(m.Writer, "class", s[i], "{")
+		fmt.Fprintln(m.Writer, "public class", replaceName(s[i]), "{")
 		v, n := m.parseMapJava(v)
 		fmt.Fprintln(m.Writer, "}")
 		if v != nil {
