@@ -1,8 +1,9 @@
 package jsonutils_test
 
 import (
-	"github.com/bashtian/jsonutils"
 	"log"
+
+	"github.com/bashtian/jsonutils"
 )
 
 func Example() {
