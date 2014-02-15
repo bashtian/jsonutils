@@ -302,7 +302,7 @@ public void set{{.Name}}({{.Type}} {{.LowerName}}) {
 }
 
 func replaceName(n string) string {
-	for _, c := range "@_-+.,!$:/\\" {
+	for _, c := range "@#_-+.,!$:/\\" {
 		n = strings.Replace(n, string(c), " ", -1)
 	}
 	n = strings.Title(n)
