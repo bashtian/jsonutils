@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -22,6 +23,7 @@ type Model struct {
 	Data        interface{}
 	Name        string
 	Format      bool
+	Convert     bool
 }
 
 func New(data interface{}, name string) *Model {
@@ -34,6 +36,7 @@ func New(data interface{}, name string) *Model {
 		Data:        data,
 		Name:        name,
 		Format:      true,
+		Convert:     true,
 	}
 }
 
@@ -148,47 +151,47 @@ func (m *Model) parseMap(ms map[string]interface{}) {
 	for _, k := range keys {
 		switch vv := ms[k].(type) {
 		case string:
-			if _, err := time.Parse(time.RFC3339, vv); err == nil {
-				m.printType(k, vv, "time.Time")
+			if m.Convert {
+				t, converted := parseType(vv)
+				m.printType(k, vv, t, converted)
 			} else {
-				m.printType(k, vv, "string")
+				m.printType(k, vv, "string", false)
 			}
-
 		case bool:
-			m.printType(k, vv, "bool")
+			m.printType(k, vv, "bool", false)
 		case float64:
 			//json parser always returns a float for number values, check if it is an int value
 			if float64(int64(vv)) == vv {
-				m.printType(k, vv, "int64")
+				m.printType(k, vv, "int64", false)
 			} else {
-				m.printType(k, vv, "float64")
+				m.printType(k, vv, "float64", false)
 			}
 		case int64:
-			m.printType(k, vv, "int64")
+			m.printType(k, vv, "int64", false)
 		case []interface{}:
 			if len(vv) > 0 {
 				switch vvv := vv[0].(type) {
 				case string:
-					m.printType(k, vv[0], "[]string")
+					m.printType(k, vv[0], "[]string", false)
 				case float64:
-					m.printType(k, vv[0], "[]float64")
+					m.printType(k, vv[0], "[]float64", false)
 				case []interface{}:
 					m.printObject(k, "[]struct", func() { m.parseMap(vvv[0].(map[string]interface{})) })
 				case map[string]interface{}:
 					m.printObject(k, "[]struct", func() { m.parseMap(vvv) })
 				default:
 					//fmt.Printf("unknown type: %T", vvv)
-					m.printType(k, nil, "interface{}")
+					m.printType(k, nil, "interface{}", false)
 				}
 			} else {
 				// empty array
-				m.printType(k, nil, "[]interface{}")
+				m.printType(k, nil, "[]interface{}", false)
 			}
 		case map[string]interface{}:
 			m.printObject(k, "struct", func() { m.parseMap(vv) })
 		default:
 			//fmt.Printf("unknown type: %T", vv)
-			m.printType(k, nil, "interface{}")
+			m.printType(k, nil, "interface{}", false)
 		}
 	}
 }
@@ -244,14 +247,30 @@ func (m *Model) parseMapJava(ms map[string]interface{}) ([]map[string]interface{
 	return data, names
 }
 
-func (m *Model) printType(key string, value interface{}, t string) {
+func parseType(value string) (string, bool) {
+	if _, err := time.Parse(time.RFC3339, value); err == nil {
+		return "time.Time", false
+	} else if _, err := strconv.ParseInt(value, 10, 64); err == nil {
+		return "int64", true
+	} else if _, err := strconv.ParseFloat(value, 64); err == nil {
+		return "float64", true
+	} else if _, err := strconv.ParseBool(value); err == nil {
+		return "bool", true
+	} else {
+		return "string", false
+	}
+}
+
+func (m *Model) printType(key string, value interface{}, t string, converted bool) {
 	name := replaceName(key)
+	if converted {
+		key += ",string"
+	}
 	if m.WithExample {
 		fmt.Fprintf(m.Writer, "%s %s `json:\"%s\"` // %v\n", name, t, key, value)
 	} else {
 		fmt.Fprintf(m.Writer, "%s %s `json:\"%s\"`\n", name, t, key)
 	}
-
 }
 
 func (m *Model) printObject(n string, t string, f func()) {

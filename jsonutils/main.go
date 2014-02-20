@@ -2,15 +2,17 @@ package main
 
 import (
 	"flag"
-	"github.com/bashtian/jsonutils"
 	"io/ioutil"
 	"log"
 	"os"
 	"strings"
+
+	"github.com/bashtian/jsonutils"
 )
 
 var filename = flag.String("f", "", "use a file as input")
 var withExamples = flag.Bool("x", false, "print examples as comment")
+var convertString = flag.Bool("c", true, "convert strings (go only)")
 var asJava = flag.Bool("j", false, "print Java instead of Go code")
 
 func main() {
@@ -47,6 +49,7 @@ func main() {
 	}
 
 	m.WithExample = *withExamples
+	m.Convert = *convertString
 	if *asJava {
 		m.WriteJava()
 	} else {
