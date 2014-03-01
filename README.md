@@ -68,7 +68,7 @@ jsonutils -j https://api.github.com/users/bashtian/repos
 ```
 ####Go
 	
-	jsonutils -x -f example.json
+	jsonutils -x -c=false -f Example.json
 	
 ```go
 type Example struct {
@@ -83,10 +83,35 @@ type Example struct {
 	FirstName   string  `json:"firstName"` // John
 	LastName    string  `json:"lastName"`  // Smith
 	PhoneNumber []struct {
-		LastCall time.Time `json:"last_call"` // 2013-01-10T05:27:07Z
-		Number   string    `json:"number"`    // 212 555-1234
-		Type     string    `json:"type"`      // home
+		LastCall string `json:"last_call"` // 2013-01-10T05:27:07Z
+		Number   string `json:"number"`    // 212 555-1234
+		Type     string `json:"type"`      // home
 	} `json:"phoneNumber"`
 	Tags []string `json:"tags"` // music
 }
+```
+
+	
+	jsonutils -f Example.json
+	
+```go
+type Example struct {
+	Address struct {
+		City          string `json:"city"`
+		PostalCode    int64  `json:"postalCode,string"`
+		State         string `json:"state"`
+		StreetAddress string `json:"streetAddress"`
+	} `json:"address"`
+	Age         int64   `json:"age"`
+	Balance     float64 `json:"balance"`
+	FirstName   string  `json:"firstName"`
+	LastName    string  `json:"lastName"`
+	PhoneNumber []struct {
+		LastCall time.Time `json:"last_call"`
+		Number   string    `json:"number"`
+		Type     string    `json:"type"`
+	} `json:"phoneNumber"`
+	Tags []string `json:"tags"`
+}
+
 ```
