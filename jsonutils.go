@@ -7,6 +7,7 @@ import (
 	"go/format"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -250,6 +251,8 @@ func (m *Model) parseMapJava(ms map[string]interface{}) ([]map[string]interface{
 func parseType(value string) (string, bool) {
 	if _, err := time.Parse(time.RFC3339, value); err == nil {
 		return "time.Time", false
+	} else if ip := net.ParseIP(value); ip != nil {
+		return "net.IP", false
 	} else if _, err := strconv.ParseInt(value, 10, 64); err == nil {
 		return "int64", true
 	} else if _, err := strconv.ParseFloat(value, 64); err == nil {
