@@ -16,6 +16,8 @@ import (
 	"strings"
 	"text/template"
 	"time"
+	"unicode"
+	"unicode/utf8"
 )
 
 type Model struct {
@@ -323,13 +325,22 @@ public void set{{.Name}}({{.Type}} {{.LowerName}}) {
 	t.Execute(m.Writer, data)
 }
 
-func replaceName(n string) string {
-	for _, c := range "@#_-+.,!$:/\\" {
-		n = strings.Replace(n, string(c), " ", -1)
+func replaceName(name string) string {
+	r, _ := utf8.DecodeRuneInString(name)
+	if unicode.IsLetter(r) || r == '_' {
+		name = strings.Title(name)
+	} else {
+		name = "_" + name
 	}
-	n = strings.Title(n)
-	n = strings.Replace(n, " ", "", -1)
-	return n
+
+	newString := ""
+	for _, r := range name {
+		if unicode.IsLetter(r) || unicode.IsNumber(r) || r == '_' {
+			newString += string(r)
+		}
+	}
+
+	return newString
 }
 
 func Mock(b []byte, i interface{}) ([]byte, error) {
