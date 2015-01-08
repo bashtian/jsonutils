@@ -33,6 +33,7 @@ func New(data interface{}, name string) *Model {
 	if name == "" {
 		name = "Data"
 	}
+	name = replaceName(name)
 	return &Model{
 		Writer:      os.Stdout,
 		WithExample: true,
@@ -328,18 +329,23 @@ public void set{{.Name}}({{.Type}} {{.LowerName}}) {
 }
 
 func replaceName(name string) string {
-	r, _ := utf8.DecodeRuneInString(name)
-	if unicode.IsLetter(r) || r == '_' {
-		name = strings.Title(name)
-	} else {
-		name = "_" + name
-	}
-
 	newString := ""
 	for _, r := range name {
-		if unicode.IsLetter(r) || unicode.IsNumber(r) || r == '_' {
+		if unicode.IsLetter(r) || unicode.IsNumber(r) {
 			newString += string(r)
+		} else {
+			newString += " "
 		}
+	}
+	newString = strings.Title(newString)
+	newString = strings.Replace(newString, " ", "", -1)
+	newString = strings.Replace(newString, "Url", "URL", -1)
+	newString = strings.Replace(newString, "Uri", "URI", -1)
+	newString = strings.Replace(newString, "Id", "ID", -1)
+
+	r, _ := utf8.DecodeRuneInString(name)
+	if !unicode.IsLetter(r) && !(r == '_') {
+		newString = "_" + newString
 	}
 
 	return newString
