@@ -93,6 +93,8 @@ func WriteGo(w io.Writer, f interface{}, name string) {
 		WithExample: true,
 		Data:        f,
 		Name:        name,
+		Format:      true,
+		Convert:     true,
 	}
 	m.WriteGo()
 }
