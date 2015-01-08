@@ -177,50 +177,62 @@ func (m *Model) print(fu func(map[string]interface{}), templData string) {
 func (m *Model) parseMap(ms map[string]interface{}) {
 	keys := getSortedKeys(ms)
 	for _, k := range keys {
-		switch vv := ms[k].(type) {
-		case string:
-			if m.Convert {
-				t, converted := parseType(vv)
-				m.printType(k, vv, t, converted)
-			} else {
-				m.printType(k, vv, "string", false)
-			}
-		case bool:
-			m.printType(k, vv, "bool", false)
-		case float64:
-			//json parser always returns a float for number values, check if it is an int value
-			if float64(int64(vv)) == vv {
-				m.printType(k, vv, "int64", false)
-			} else {
-				m.printType(k, vv, "float64", false)
-			}
-		case int64:
-			m.printType(k, vv, "int64", false)
-		case []interface{}:
-			if len(vv) > 0 {
-				switch vvv := vv[0].(type) {
-				case string:
-					m.printType(k, vv[0], "[]string", false)
-				case float64:
-					m.printType(k, vv[0], "[]float64", false)
-				case []interface{}:
-					m.printObject(k, "[]struct", func() { m.parseMap(vvv[0].(map[string]interface{})) })
-				case map[string]interface{}:
-					m.printObject(k, "[]struct", func() { m.parseMap(vvv) })
-				default:
-					//fmt.Printf("unknown type: %T", vvv)
-					m.printType(k, nil, "interface{}", false)
-				}
-			} else {
-				// empty array
-				m.printType(k, nil, "[]interface{}", false)
-			}
-		case map[string]interface{}:
-			m.printObject(k, "struct", func() { m.parseMap(vv) })
-		default:
-			//fmt.Printf("unknown type: %T", vv)
-			m.printType(k, nil, "interface{}", false)
+		m.parse(ms[k], k)
+	}
+}
+
+func (m *Model) parse(data interface{}, k string) {
+	switch vv := data.(type) {
+	case string:
+		if m.Convert {
+			t, converted := parseType(vv)
+			m.printType(k, vv, t, converted)
+		} else {
+			m.printType(k, vv, "string", false)
 		}
+	case bool:
+		m.printType(k, vv, "bool", false)
+	case float64:
+		//json parser always returns a float for number values, check if it is an int value
+		if float64(int64(vv)) == vv {
+			m.printType(k, vv, "int64", false)
+		} else {
+			m.printType(k, vv, "float64", false)
+		}
+	case int64:
+		m.printType(k, vv, "int64", false)
+	case []interface{}:
+		if len(vv) > 0 {
+			switch vvv := vv[0].(type) {
+			case string:
+				m.printType(k, vv[0], "[]string", false)
+			case float64:
+				//json parser always returns a float for number values, check if it is an int value
+				if float64(int64(vv[0].(float64))) == vv[0].(float64) {
+					m.printType(k, vv[0], "[]int64", false)
+				} else {
+					m.printType(k, vv[0], "[]float64", false)
+				}
+			case bool:
+				m.printType(k, vv[0], "[]bool", false)
+			case []interface{}:
+				m.parse(vvv[0], k)
+				//m.printObject(k, "[]struct", func() { m.parse(vvv[0], k) })
+			case map[string]interface{}:
+				m.printObject(k, "[]struct", func() { m.parseMap(vvv) })
+			default:
+				//fmt.Printf("unknown type: %T", vvv)
+				m.printType(k, nil, "interface{}", false)
+			}
+		} else {
+			// empty array
+			m.printType(k, nil, "[]interface{}", false)
+		}
+	case map[string]interface{}:
+		m.printObject(k, "struct", func() { m.parseMap(vv) })
+	default:
+		//fmt.Printf("unknown type: %T", vv)
+		m.printType(k, nil, "interface{}", false)
 	}
 }
 
