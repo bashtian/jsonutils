@@ -124,7 +124,7 @@ func (m *Model) WriteGo() {
 
 func (m *Model) writeGo() {
 	fu := func(ms map[string]interface{}) { m.parseMap(ms) }
-	m.print(fu, "type %s []struct {\n", "type %s struct {\n")
+	m.print(fu, goTempl)
 }
 
 func (m *Model) WriteJava() {
@@ -134,19 +134,41 @@ func (m *Model) WriteJava() {
 			m.parseArrayJava(v, n)
 		}
 	}
-	fmt.Fprintln(m.Writer, "import com.google.gson.annotations.SerializedName;\n")
-	m.print(fu, "//NOTE: use as an array\npublic class %s {\n", "class %s {\n")
+	m.print(fu, gsonTempl)
 }
 
-func (m *Model) print(fu func(map[string]interface{}), array, object string) {
+func printTempl(w io.Writer, templData string, name string, isArray bool) {
+	tmpl, err := template.New("test").Parse(templData)
+	if err != nil {
+		panic(err)
+	}
+
+	data := struct {
+		Name    string
+		IsArray bool
+	}{
+		name,
+		isArray,
+	}
+
+	err = tmpl.Execute(w, data)
+	if err != nil {
+		panic(err)
+	}
+
+}
+
+func (m *Model) print(fu func(map[string]interface{}), templData string) {
 	var ma map[string]interface{}
 	switch v := m.Data.(type) {
 	case []interface{}:
 		ma = v[0].(map[string]interface{})
-		fmt.Fprintf(m.Writer, array, m.Name)
+		printTempl(m.Writer, templData, m.Name, true)
+		//fmt.Fprintf(m.Writer, array, m.Name)
 	default:
 		ma = m.Data.(map[string]interface{})
-		fmt.Fprintf(m.Writer, object, m.Name)
+		printTempl(m.Writer, templData, m.Name, false)
+		//fmt.Fprintf(m.Writer, object, m.Name)
 	}
 	fu(ma)
 	fmt.Fprintln(m.Writer, "}")
@@ -392,3 +414,21 @@ func getName(u string) string {
 	}
 	return strings.Title(s[len(s)-1])
 }
+
+const gsonTempl = `
+package com.example.gson
+
+import com.google.gson.annotations.SerializedName;
+
+{{if .IsArray}}//NOTE: use as an array{{end}}
+public class {{.Name}} {
+
+private static final Gson gson = new Gson();
+
+public static {{.Name}} fromJsonString(String s) {
+	return gson.fromJson(s, {{.Name}}.class);
+}
+`
+
+const goTempl = `type {{.Name}} {{if .IsArray}}[]{{end}}struct {
+`
