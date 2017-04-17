@@ -37,8 +37,8 @@ You can also print Java code
 jsonutil -j https://api.github.com/repos/bashtian/jsonutils
 ```
 
-###Example
-####JSON
+### Example
+#### JSON
 ```json
 {
     "firstName": "John",
@@ -66,7 +66,7 @@ jsonutil -j https://api.github.com/repos/bashtian/jsonutils
     "tags": ["music","video"]
 }
 ```
-####Go
+#### Go
 	
 	jsonutil -x -c=false -f Example.json
 	

@@ -1,6 +1,6 @@
 Examples
 =========
-#https://api.github.com
+# https://api.github.com
 
 	{
 		current_user_url: "https://api.github.com/user",
