@@ -31,7 +31,7 @@ If you want to print example data as comments, use the -x parameter
 jsonutil -x https://api.github.com/repos/bashtian/jsonutils
 ```
 
-You can also print Java code 
+You can also print Java code
 
 ```bash
 jsonutil -j https://api.github.com/repos/bashtian/jsonutils
@@ -67,9 +67,9 @@ jsonutil -j https://api.github.com/repos/bashtian/jsonutils
 }
 ```
 #### Go
-	
+
 	jsonutil -x -c=false -f Example.json
-	
+
 ```go
 type Example struct {
 	Address struct {
@@ -91,9 +91,9 @@ type Example struct {
 }
 ```
 
-	
-	jsonutils -f Example.json
-	
+
+	jsonutil -f Example.json
+
 ```go
 type Example struct {
 	Address struct {
